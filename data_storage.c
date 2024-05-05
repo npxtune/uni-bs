@@ -1,4 +1,6 @@
 #include "data_storage.h"
+
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -26,8 +28,17 @@ int put(char* key, char* value) {
 }
 
 int get(char* key, char* res) {
+    char* temp;
+    for (int i = 0; i < sizeof(key); i++) {
+        if (!isdigit(key[i])) temp[i] = key[i];
+        else {
+            temp[i] = key[i];
+            temp[i+1] = '\0';
+            break;
+        }
+    }
     for (int i = 0; i < num_entries; ++i) {
-        if (strcmp(data[i].key, key) == 0) {
+        if (strcmp(data[i].key, temp) == 0) {
             strcpy(res, data[i].value);
             return 1; // Success, key found
         }
