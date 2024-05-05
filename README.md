@@ -1,10 +1,17 @@
+# Repo für BS
 
+### MacOS:
+Dependencies:
+```
+brew install telnet
+```
 
 Commands fürs Terminal zum Ausführen der Dockerfile:
 
-(Wichtig ersteinmal: brew install telnet)
+```
+docker run -p 5678:5678 socket-server
+```
 
-
-'docker run -p 5678:5678 socket-server'
-
-'telnet localhost 5678'
+```
+telnet localhost 5678
+```
