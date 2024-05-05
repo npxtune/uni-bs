@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,6 +49,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    WAITING_CONNECT:
     while(!IsClientConnected) {
         printf("Waiting for connection...\n");
         if ((newSocket = accept(serverFd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0) {
@@ -61,6 +63,10 @@ int main() {
     while (1) {
         // Lesen von Daten vom Client
         const int valread = read(newSocket, buffer, BUFFER_SIZE);
+
+        for (int i = 0; i < sizeof(buffer); i++) {  // Make non case sensitive
+            buffer[i] = toupper(buffer[i]);
+        }
         buffer[valread] = '\0'; // Nullterminierung
 
         printf("Client sent command: %s", buffer);
@@ -71,22 +77,26 @@ int main() {
         char *value = strtok(NULL, " ");
 
         // Ausführen des Befehls und Senden der Antwort
-        if (strcmp(command, "QUIT") == 13) {    // Wieso 13? Nur Gott weiß wieso...
-            goto EXIT_CLEANUP;
-        }
         if (strcmp(command, "GET") == 0) {
             char result[BUFFER_SIZE];
             const int ret = get(key, result);
-            if (ret < 0)
-                snprintf(result, sizeof(result)-2, "GET:%s:key_nonexistent", key);
+            int temp = 0;
+            for (int i = 0; i < sizeof(key); i++) {
+                if (isdigit(key[i])) temp = key[i] - '0';
+            }
+            if (ret < 0) {
+                snprintf(result, sizeof(result)-2, "\033[31mkey%d:\tKey not found!\033[0m\n", temp);
+            }
             send(newSocket, result, strlen(result), 0);
         }
+
         if (strcmp(command, "PUT") == 0) {
             char result[BUFFER_SIZE];
             put(key, value);
             sprintf(result, "PUT:%s:%s", key, value);
             send(newSocket, result, strlen(result), 0);
         }
+
         if (strcmp(command, "DEL") == 0) {
             char result[BUFFER_SIZE];
             const int ret = del(key);
@@ -95,6 +105,18 @@ int main() {
             else
                 sprintf(result, "DEL:%s:key_nonexistent", key);
             send(newSocket, result, strlen(result), 0);
+        }
+
+        if (strcmp(command, "DC") == 0) {
+            memset(buffer, 0, BUFFER_SIZE);
+            printf("Closing Socket %d\n", newSocket);
+            close(newSocket);
+            IsClientConnected = false;
+            goto WAITING_CONNECT;
+        }
+
+        if (strcmp(command, "QUIT") == 13 || strcmp(command, "Q") == 13) {    // Wieso 13? Nur Gott weiß wieso...
+            goto EXIT_CLEANUP;
         }
 
         // Zurücksetzen des Puffers
