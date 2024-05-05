@@ -1,17 +1,12 @@
 # Repo für BS
 
 ### MacOS:
-Dependencies:
+Setup:
 ```
-brew install telnet
-```
-
-Commands fürs Terminal zum Ausführen der Dockerfile:
-
-```
-docker run -p 5678:5678 socket-server
+./setup/setup.sh
 ```
 
-```
-telnet localhost 5678
-```
+Danach in CLion die Dockerimage als Toolchain mit den Container Settings "--entrypoint -P --rm" hinzufügen,
+um den Server automatisch beim kompilieren des Projekts zu starten.
+
+Um sich zu verbinden, einfach `./client.sh` ausführen! :)
