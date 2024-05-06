@@ -74,7 +74,7 @@ WAITING_CONNECT:
                 send(Client, result, strlen(result), 0);
             }
             else {
-                snprintf(result, sizeof(result), "\033[31mNO VALUE FOR KEY PROVIDED!\033[0m\n");
+                snprintf(result, sizeof(result), "\033[31mNo value provided!\033[0m\n");
                 send(Client, result, strlen(result), 0);
             }
         }
@@ -83,9 +83,9 @@ WAITING_CONNECT:
             char result[BUFFER_SIZE];
             const int ret = del(key);
             if (ret == 0)
-                sprintf(result, "DEL:%s:key_deleted", key);
+                sprintf(result, "%s's value deleted.\n", key);
             else
-                sprintf(result, "DEL:%s:key_nonexistent", key);
+                sprintf(result, "\033[31m%s has no value for deletion.\033[0m\n", key);
             send(Client, result, strlen(result), 0);
         }
 
