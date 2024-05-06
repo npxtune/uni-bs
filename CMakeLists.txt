@@ -3,4 +3,6 @@ project(uni-bs)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(DockerProject main.c data_storage.h data_storage.c)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_executable(uni-bs source/main.c source/init.c source/data_storage.c)
