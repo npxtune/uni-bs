@@ -28,7 +28,7 @@ int put(char* key, char* value) {
 }
 
 int get(char* key, char* res) {
-    char* temp;
+    char* temp = key;
     for (int i = 0; i < sizeof(key); i++) {
         if (!isdigit(key[i])) temp[i] = key[i];
         else {
