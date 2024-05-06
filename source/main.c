@@ -1,59 +1,36 @@
+#include "init.h"
+#include "data_storage.h"
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <error.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include "data_storage.h"
-#include "init.h"
 
-#define PORT 5678
 #define BUFFER_SIZE 1024
 
 bool IsClientConnected = false;
+int Server, Client = 0;
+struct sockaddr_in Address;
+char Buffer[BUFFER_SIZE] = {0};
 
 int main() {
-    int serverFd, newSocket = 0;
-    struct sockaddr_in address;
-    const int opt = 1;
-    int addrlen = sizeof(address);
-    char buffer[BUFFER_SIZE] = {0};
-
-    // Erstellt einen Socket
-    if ((serverFd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        perror("Socket creation failed");
-        exit(EXIT_FAILURE);
+    if (init(&Server, &Address) == EXIT_SUCCESS) {
+        printf("Opened Socket on Port: %d\n", 5678);
+    } else {
+        perror("FAILED TO OPEN SOCKET!\n");
+        return -1;
     }
-
-    // Setzt Optionen für den Socket
-    if (setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
-        perror("Setsockopt failed");
-        exit(EXIT_FAILURE);
-    }
-
-    // Konfiguriert Adressenstruktur
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
-
-    // Bindet den Socket an die Adresse
-    if (bind(serverFd, (struct sockaddr*)&address, sizeof(address)) < 0) {
-        perror("Bind failed");
-        exit(EXIT_FAILURE);
-    }
-
-    // Hört auf eingehende Verbindungen
-    if (listen(serverFd, 3) < 0) {
-        perror("Listen failed");
-        exit(EXIT_FAILURE);
-    }
+    socklen_t length = sizeof(Address);
 
 WAITING_CONNECT:
     while (!IsClientConnected) {
         printf("Waiting for connection...\n");
-        if ((newSocket = accept(serverFd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
+        if ((Client = accept(Server, (struct sockaddr*)&Address, (socklen_t*)&length)) < 0) {
             perror("Accept failed");
             exit(EXIT_FAILURE);
         }
@@ -64,18 +41,18 @@ WAITING_CONNECT:
 LOOP:
     1;
     // Lesen von Daten vom Client
-    const int valread = read(newSocket, buffer, BUFFER_SIZE);
+    const int valread = read(Client, Buffer, BUFFER_SIZE);
 
-    for (int i = 0; i < sizeof(buffer); i++) {
+    for (int i = 0; i < sizeof(Buffer); i++) {
         // Make non case sensitive
-        buffer[i] = toupper(buffer[i]);
+        Buffer[i] = toupper(Buffer[i]);
     }
-    buffer[valread] = '\0'; // Nullterminierung
+    Buffer[valread] = '\0'; // Nullterminierung
 
-    printf("Client sent command: %s", buffer);
+    printf("Client sent command: %s", Buffer);
 
     // Tokens des Befehls
-    const char *command = strtok(buffer, " ");
+    const char *command = strtok(Buffer, " ");
     char *key = strtok(NULL, " ");
     char *value = strtok(NULL, " ");
 
@@ -90,14 +67,18 @@ LOOP:
         if (ret < 0) {
             snprintf(result, sizeof(result) - 2, "\033[31mkey%d:\tKey not found!\033[0m\n", temp);
         }
-        send(newSocket, result, strlen(result), 0);
+        send(Client, result, strlen(result), 0);
     }
 
     if (strcmp(command, "PUT") == 0) {
         char result[BUFFER_SIZE];
-        put(key, value);
-        sprintf(result, "PUT:%s:%s", key, value);
-        send(newSocket, result, strlen(result), 0);
+        if (put(key, value) == EXIT_SUCCESS) {
+            sprintf(result, "%s -> %s", key, value);
+            send(Client, result, strlen(result), 0);
+        } else {
+            snprintf(result, sizeof(result), "\033[31mNO VALUE FOR KEY PROVIDED!\033[0m\n");
+            send(Client, result, strlen(result), 0);
+        }
     }
 
     if (strcmp(command, "DEL") == 0) {
@@ -107,13 +88,13 @@ LOOP:
             sprintf(result, "DEL:%s:key_deleted", key);
         else
             sprintf(result, "DEL:%s:key_nonexistent", key);
-        send(newSocket, result, strlen(result), 0);
+        send(Client, result, strlen(result), 0);
     }
 
     if (strcmp(command, "DC") == 0) {
-        memset(buffer, 0, BUFFER_SIZE);
-        printf("Closing Socket %d\n", newSocket);
-        close(newSocket);
+        memset(Buffer, 0, BUFFER_SIZE);
+        printf("Closing Socket %d\n", Client);
+        close(Client);
         IsClientConnected = false;
         goto WAITING_CONNECT;
     }
@@ -124,15 +105,15 @@ LOOP:
     }
 
     // Zurücksetzen des Puffers
-    memset(buffer, 0, BUFFER_SIZE);
+    memset(Buffer, 0, BUFFER_SIZE);
     goto LOOP;
 
     //  ----------------------------------------------------------------
 
 EXIT_CLEANUP:
-    memset(buffer, 0, BUFFER_SIZE);
-    close(newSocket);
-    close(serverFd);
+    memset(Buffer, 0, BUFFER_SIZE);
+    close(Client);
+    close(Server);
     IsClientConnected = false;
     exit(EXIT_SUCCESS);
     return 0;

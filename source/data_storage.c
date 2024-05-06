@@ -2,6 +2,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define MAX_ENTRIES 1000
@@ -10,10 +11,12 @@ KeyValuePair data[MAX_ENTRIES];
 int num_entries = 0;
 
 int put(char* key, char* value) {
+    if (value == '\0') { return EXIT_FAILURE; }
+
     for (int i = 0; i < num_entries; ++i) {
         if (strcmp(data[i].key, key) == 0) {
             strcpy(data[i].value, value);
-            return 0; // Success, key found and value updated
+            return EXIT_SUCCESS; // Success, key found and value updated
         }
     }
 
@@ -21,10 +24,10 @@ int put(char* key, char* value) {
         strcpy(data[num_entries].key, key);
         strcpy(data[num_entries].value, value);
         num_entries++;
-        return 1; // Success, new key-value pair added
+        return EXIT_SUCCESS; // Success, new key-value pair added
     }
 
-    return -1; // Failure, maximum entries reached
+    return EXIT_FAILURE; // Failure, maximum entries reached
 }
 
 int get(char* key, char* res) {
