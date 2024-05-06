@@ -47,6 +47,12 @@ int get(char *key, char *res) {
 }
 
 int del(char *key) {
+    for (int i = 0; i < sizeof(key); i++) {
+        if (isdigit(key[i])) {
+            key[i + 1] = '\0';
+            break;
+        }
+    }
     for (int i = 0; i < num_entries; ++i) {
         if (strcmp(data[i].key, key) == 0) {
             // Shift elements to cover deleted entry
