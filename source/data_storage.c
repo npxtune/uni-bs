@@ -10,7 +10,7 @@
 KeyValuePair data[MAX_ENTRIES];
 int num_entries = 0;
 
-int put(char* key, char* value) {
+int put(char *key, char *value) {
     if (value == '\0') { return EXIT_FAILURE; }
 
     for (int i = 0; i < num_entries; ++i) {
@@ -30,10 +30,10 @@ int put(char* key, char* value) {
     return EXIT_FAILURE; // Failure, maximum entries reached
 }
 
-int get(char* key, char* res) {
+int get(char *key, char *res) {
     for (int i = 0; i < sizeof(key); i++) {
         if (isdigit(key[i])) {
-            key[i+1] = '\0';
+            key[i + 1] = '\0';
             break;
         }
     }
@@ -46,7 +46,7 @@ int get(char* key, char* res) {
     return -1; // Failure, key not found
 }
 
-int del(char* key) {
+int del(char *key) {
     for (int i = 0; i < num_entries; ++i) {
         if (strcmp(data[i].key, key) == 0) {
             // Shift elements to cover deleted entry

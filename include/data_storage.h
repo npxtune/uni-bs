@@ -9,8 +9,8 @@ typedef struct {
     char value[MAX_VALUE_LENGTH];
 } KeyValuePair;
 
-int put(char* key, char* value);
-int get(char* key, char* res);
-int del(char* key);
+int put(char *key, char *value);
+int get(char *key, char *res);
+int del(char *key);
 
 #endif /* DATA_STORAGE_H */
