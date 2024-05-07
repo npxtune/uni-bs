@@ -11,7 +11,7 @@ KeyValuePair data[MAX_ENTRIES];
 int num_entries = 0;
 
 int put(char *key, char *value) {
-    if (value == '\0') { return EXIT_FAILURE; }
+    if (value == NULL) { return EXIT_FAILURE; }
 
     for (int i = 0; i < num_entries; ++i) {
         if (strcmp(data[i].key, key) == 0) {

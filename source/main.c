@@ -1,13 +1,12 @@
 #include "init.h"
 #include "data_storage.h"
+#include "query.h"
 
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
-
-#define BUFFER_SIZE 1024
 
 bool IsClientConnected = false;
 int Server, Client = 0;
@@ -49,59 +48,17 @@ WAITING_CONNECT:
 
         printf("Client sent command: %s", Buffer); // For debugging :)
 
-        // Tokens des Befehls
-        const char *command = strtok(Buffer, " ");
-        char *key = strtok(NULL, " ");
-        char *value = strtok(NULL, " ");
+        const client_data data = {strtok(Buffer, " "), strtok(NULL, " "), strtok(NULL, " ")};
 
-        // Commands
-        if (strcmp(command, "GET") == 0) {
-            char result[BUFFER_SIZE];
-            const int ret = get(key, result);
-            int temp = 0;
-            for (int i = 0; i < sizeof(key); i++) {
-                if (isdigit(key[i])) temp = key[i] - '0';
-            }
-            if (ret < 0) {
-                snprintf(result, sizeof(result) - 2, "\033[31mkey%d:\tKey not found!\033[0m\n", temp);
-            }
-            send(Client, result, strlen(result), 0);
-        }
+        const int result = query(&data, &Client);
 
-        if (strcmp(command, "PUT") == 0) {
-            char result[BUFFER_SIZE];
-            if (put(key, value) == EXIT_SUCCESS) {
-                sprintf(result, "%s -> %s", key, value);
-                send(Client, result, strlen(result), 0);
-            }
-            else {
-                snprintf(result, sizeof(result), "\033[31mNo value provided!\033[0m\n");
-                send(Client, result, strlen(result), 0);
-            }
-        }
-
-        if (strcmp(command, "DEL") == 0) {
-            char result[BUFFER_SIZE];
-            const int ret = del(key);
-            if (ret == 0)
-                sprintf(result, "%s's value deleted.\n", key);
-            else
-                sprintf(result, "\033[31m%s has no value for deletion.\033[0m\n", key);
-            send(Client, result, strlen(result), 0);
-        }
-
-        if (strcmp(command, "DC") == 0) {
+        if (result == SERVER_SHUTDOWN) {
+            IsClientConnected = false;
+        } else if (result == CLIENT_DISCONNECT) {
             memset(Buffer, 0, BUFFER_SIZE);
-            printf("Client %d requested disconnect\n", Client);
             close(Client);
             IsClientConnected = false;
             goto WAITING_CONNECT;
-        }
-
-        if (strcmp(command, "QUIT") == 13 || strcmp(command, "Q") == 13) {
-            // Wieso 13? Nur Gott weiß wieso...
-            IsClientConnected = false;
-            printf("Client %d requested shutdown\n", Client);
         }
 
         // Reset Buffer
