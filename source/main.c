@@ -36,6 +36,7 @@ WAITING_CONNECT:
         IsClientConnected = true;
     }
 
+
     // Read input from client
     while (IsClientConnected) {
         const int valread = read(Client, Buffer, BUFFER_SIZE);
