@@ -11,7 +11,7 @@
 enum command_strings {get_command, put_command, del_command, dc_command, quit_command};
 
 typedef struct {
-    char* word;
+    char* cmd;
 } lookup_t;
 
 typedef struct {

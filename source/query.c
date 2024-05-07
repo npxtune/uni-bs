@@ -17,7 +17,7 @@ const lookup_t COMMANDS[] = {
 
 int query(const client_data *data, const int *client) { // Query the client's data against internal command list
     for (int i = 0; i < NELEMS(COMMANDS); i++) {
-        if (strncmp(COMMANDS[i].word, data->command, strlen(data->command)) == 0) {
+        if (strncmp(COMMANDS[i].cmd, data->command, strlen(data->command)) == 0) {
             return exec(i, data, client);   // If found, execute corresponding command
         }
     }
