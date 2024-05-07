@@ -8,8 +8,6 @@
 #define EXEC_FAILURE -3;
 #define PORT 5678
 
-enum command_strings {get_command, put_command, del_command, dc_command, quit_command};
-
 typedef struct {
     char* cmd;
 } lookup_t;

@@ -7,7 +7,9 @@
 #include <string.h>
 #include <sys/socket.h>
 
-const lookup_t COMMANDS[] = {
+enum command_strings {get_command, put_command, del_command, dc_command, quit_command};
+
+const lookup_t COMMANDS[] = {   // Same Order as in the enum above!!!
     {"GET"},
     {"PUT"},
     {"DEL"},
