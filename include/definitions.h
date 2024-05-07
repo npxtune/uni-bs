@@ -6,6 +6,7 @@
 #define CLIENT_DISCONNECT -1
 #define SERVER_SHUTDOWN -2
 #define EXEC_FAILURE -3;
+#define PORT 5678
 
 enum command_strings {get_command, put_command, del_command, dc_command, quit_command};
 

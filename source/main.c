@@ -16,7 +16,7 @@ char Buffer[BUFFER_SIZE] = {0};
 int main() {
     if (init(&Server, &Address) == EXIT_SUCCESS) {
         // Initialize Socket
-        printf("Opened Socket on Port: %d\n", 5678);
+        printf("Opened Socket on Port: %d\n", PORT);
     }
     else {
         perror("FAILED TO OPEN SOCKET!\n");
