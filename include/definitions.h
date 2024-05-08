@@ -9,6 +9,9 @@
 #define PORT 5678
 #define MAX_CLIENTS 30
 
+// Define a function to handle client requests
+void *handle_client(void *arg);
+
 typedef struct {
     char* cmd;
 } lookup_t;
