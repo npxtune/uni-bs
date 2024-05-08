@@ -1,7 +1,6 @@
 #include "init.h"
 #include "data_storage.h"
 #include "query.h"
-
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
