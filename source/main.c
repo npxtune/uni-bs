@@ -7,11 +7,15 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 bool IsClientConnected = false;
-int Server, Client = 0;
+int Server;
 struct sockaddr_in Address;
 char Buffer[BUFFER_SIZE] = {0};
+
+// Define a function to handle client requests
+void *handle_client(void *arg);
 
 int main() {
     if (init(&Server, &Address) == EXIT_SUCCESS) {
@@ -23,22 +27,32 @@ int main() {
         return -1;
     }
 
-WAITING_CONNECT:
-    while (!IsClientConnected) {
-        // Wait for Client connection
+    while (true) {
         socklen_t length = sizeof(Address);
-        printf("Waiting for connection...\n");
-        if ((Client = accept(Server, (struct sockaddr*)&Address, &length)) < 0) {
+        int *client = malloc(sizeof(int)); // Allocate memory for client socket descriptor
+        if ((*client = accept(Server, (struct sockaddr*)&Address, &length)) < 0) {
             perror("Accept failed");
-            exit(EXIT_FAILURE);
+            free(client); // Free allocated memory before exiting
+            continue;
         }
-        IsClientConnected = true;
+
+        // Create a thread to handle client requests
+        pthread_t tid;
+        pthread_create(&tid, NULL, handle_client, (void *)client);
+        pthread_detach(tid); // Detach the thread to avoid memory leaks
     }
 
+    close(Server);
+    return 0;
+}
+
+void *handle_client(void *arg) {
+    int client = *((int *)arg); // Cast void pointer back to int pointer and dereference
+    free(arg); // Free memory allocated for argument
 
     // Read input from client
-    while (IsClientConnected) {
-        const int valread = read(Client, Buffer, BUFFER_SIZE);
+    while (true) {
+        const int valread = read(client, Buffer, BUFFER_SIZE);
 
         for (int i = 0; i < sizeof(Buffer); i++) {
             // Make non case sensitive
@@ -46,25 +60,20 @@ WAITING_CONNECT:
         }
         Buffer[valread] = '\0'; // NULL char
 
-        printf("Client sent command: %s", Buffer); // For debugging :)
+        printf("Client %d sent command: %s", client, Buffer); // For debugging :)
 
         const client_data data = {strtok(Buffer, " "), strtok(NULL, " "), strtok(NULL, " ")};
 
-        const int result = query(&data, &Client);
+        const int result = query(&data, &client);
 
-        if (result == SERVER_SHUTDOWN) {
-            IsClientConnected = false;
-        } else if (result == CLIENT_DISCONNECT) {
-            memset(Buffer, 0, BUFFER_SIZE);
-            close(Client);
-            IsClientConnected = false;
-            goto WAITING_CONNECT;
+        if (result == SERVER_SHUTDOWN || result == CLIENT_DISCONNECT) {
+            close(client);
+            break;
         }
 
         // Reset Buffer
         memset(Buffer, 0, BUFFER_SIZE);
     }
-    close(Client);
-    close(Server);
-    exit(EXIT_SUCCESS);
+
+    return NULL;
 }

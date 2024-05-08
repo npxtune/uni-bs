@@ -28,7 +28,7 @@ int init(int *server, struct sockaddr_in *address) {
     }
 
     // Hört auf eingehende Verbindungen
-    if (listen(*server, 3) < 0) {
+    if (listen(*server, MAX_CLIENTS) < 0) { // Change the backlog to MAX_CLIENTS
         perror("Listen failed");
         exit(EXIT_FAILURE);
     }
