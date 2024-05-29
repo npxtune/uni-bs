@@ -1,3 +1,4 @@
+// data_storage.c
 #include "../include/data_storage.h"
 
 #include <ctype.h>
@@ -5,12 +6,39 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <sys/socket.h>
+#include <definitions.h>
 
 #define MAX_ENTRIES 1000
+#define MAX_SUBSCRIBERS 100
+
+typedef struct {
+    char key[256];
+    int clients[MAX_SUBSCRIBERS];
+    int num_subscribers;
+} Subscription;
 
 KeyValuePair data[MAX_ENTRIES];
 int num_entries = 0;
+Subscription subscriptions[MAX_ENTRIES];
+int num_subscriptions = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for thread safety
+
+void notify_subscribers(const char *key, const char *value) {
+    pthread_mutex_lock(&mutex);
+    for (int i = 0; i < num_subscriptions; ++i) {
+        if (strcmp(subscriptions[i].key, key) == 0) {
+            for (int j = 0; j < subscriptions[i].num_subscribers; ++j) {
+                int client = subscriptions[i].clients[j];
+                char message[BUFFER_SIZE];
+                snprintf(message, sizeof(message), "Update: %s -> %s\n", key, value);
+                send(client, message, strlen(message), 0);
+            }
+            break;
+        }
+    }
+    pthread_mutex_unlock(&mutex);
+}
 
 int put(char *key, char *value) {
     pthread_mutex_lock(&mutex); // Lock mutex before accessing shared resources
@@ -23,6 +51,7 @@ int put(char *key, char *value) {
     for (int i = 0; i < num_entries; ++i) {
         if (strcmp(data[i].key, key) == 0) {
             strcpy(data[i].value, value);
+            notify_subscribers(key, value);
             pthread_mutex_unlock(&mutex); // Unlock mutex before returning
             return EXIT_SUCCESS; // Success, key found and value updated
         }
@@ -32,6 +61,7 @@ int put(char *key, char *value) {
         strcpy(data[num_entries].key, key);
         strcpy(data[num_entries].value, value);
         num_entries++;
+        notify_subscribers(key, value);
         pthread_mutex_unlock(&mutex); // Unlock mutex before returning
         return EXIT_SUCCESS; // Success, new key-value pair added
     }
@@ -40,47 +70,30 @@ int put(char *key, char *value) {
     return EXIT_FAILURE; // Failure, maximum entries reached
 }
 
-int get(char *key, char *res) {
-    pthread_mutex_lock(&mutex); // Lock mutex before accessing shared resources
+int subscribe(int client, const char *key) {
+    pthread_mutex_lock(&mutex);
 
-    for (int i = 0; i < sizeof(key); i++) {
-        if (isdigit(key[i])) {
-            key[i + 1] = '\0';
-            break;
-        }
-    }
-    for (int i = 0; i < num_entries; ++i) {
-        if (strcmp(data[i].key, key) == 0) {
-            strcpy(res, data[i].value);
-            pthread_mutex_unlock(&mutex); // Unlock mutex before returning
-            return 1; // Success, key found
-        }
-    }
-    pthread_mutex_unlock(&mutex); // Unlock mutex before returning
-    return -1; // Failure, key not found
-}
-
-int del(char *key) {
-    pthread_mutex_lock(&mutex); // Lock mutex before accessing shared resources
-
-    for (int i = 0; i < sizeof(key); i++) {
-        if (isdigit(key[i])) {
-            key[i + 1] = '\0';
-            break;
-        }
-    }
-    for (int i = 0; i < num_entries; ++i) {
-        if (strcmp(data[i].key, key) == 0) {
-            // Shift elements to cover deleted entry
-            for (int j = i; j < num_entries - 1; ++j) {
-                strcpy(data[j].key, data[j + 1].key);
-                strcpy(data[j].value, data[j + 1].value);
+    for (int i = 0; i < num_subscriptions; ++i) {
+        if (strcmp(subscriptions[i].key, key) == 0) {
+            if (subscriptions[i].num_subscribers < MAX_SUBSCRIBERS) {
+                subscriptions[i].clients[subscriptions[i].num_subscribers++] = client;
+                pthread_mutex_unlock(&mutex);
+                return EXIT_SUCCESS;
             }
-            num_entries--;
-            pthread_mutex_unlock(&mutex); // Unlock mutex before returning
-            return 0; // Success, key deleted
+            pthread_mutex_unlock(&mutex);
+            return EXIT_FAILURE; // Too many subscribers
         }
     }
-    pthread_mutex_unlock(&mutex); // Unlock mutex before returning
-    return -1; // Failure, key not found
+
+    if (num_subscriptions < MAX_ENTRIES) {
+        strcpy(subscriptions[num_subscriptions].key, key);
+        subscriptions[num_subscriptions].clients[0] = client;
+        subscriptions[num_subscriptions].num_subscribers = 1;
+        num_subscriptions++;
+        pthread_mutex_unlock(&mutex);
+        return EXIT_SUCCESS;
+    }
+
+    pthread_mutex_unlock(&mutex);
+    return EXIT_FAILURE; // Maximum subscriptions reached
 }

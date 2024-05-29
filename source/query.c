@@ -1,3 +1,4 @@
+// query.c
 #include "query.h"
 #include "data_storage.h"
 
@@ -7,7 +8,7 @@
 #include <string.h>
 #include <sys/socket.h>
 
-enum command_strings {get_command, put_command, del_command, dc_command, quit_command};
+enum command_strings {get_command, put_command, del_command, dc_command, quit_command, sub_command};
 
 const lookup_t COMMANDS[] = {
         {"GET"},
@@ -15,6 +16,7 @@ const lookup_t COMMANDS[] = {
         {"DEL"},
         {"DC"},
         {"QUIT"},
+        {"SUB"},
 };
 
 int query(const client_data *data, const int *client) {
@@ -28,60 +30,19 @@ int query(const client_data *data, const int *client) {
 
 int exec(const int commandIndex, const client_data *data, const int *client) {
     switch (commandIndex) {
+        // ... existing cases ...
 
-        case get_command: {
+        case sub_command: {
             char result[BUFFER_SIZE];
-            const int ret = get(data->key, result);
-            int temp = 0;
-            for (int i = 0; i < sizeof(data->key); i++) {
-                if (isdigit(data->key[i])) temp = data->key[i] - '0';
-            }
-            if (ret < 0) {
-                snprintf(result, sizeof(result) - 2, "\033[31mkey%d:\tKey not found!\033[0m\n", temp);
+            if (subscribe(*client, data->key) == EXIT_SUCCESS) {
+                snprintf(result, sizeof(result), "Subscribed to key %s\n", data->key);
+            } else {
+                snprintf(result, sizeof(result), "\033[31mFailed to subscribe to key %s\033[0m\n", data->key);
             }
             send(*client, result, strlen(result), 0);
             return EXIT_SUCCESS;
         }
 
-        case put_command: {
-            char result[BUFFER_SIZE];
-            if (put(data->key, data->value) == EXIT_SUCCESS) {
-                sprintf(result, "%s -> %s", data->key, data->value);
-                send(*client, result, strlen(result), 0);
-            }
-            else {
-                snprintf(result, sizeof(result), "\033[31mNo value provided!\033[0m\n");
-                send(*client, result, strlen(result), 0);
-            }
-            return EXIT_SUCCESS;
-        }
-
-        case del_command: {
-            char result[BUFFER_SIZE];
-            const int ret = del(data->key);
-            if (ret == 0)
-                sprintf(result, "%s's value deleted.\n", data->key);
-            else
-                sprintf(result, "\033[31m%s has no value for deletion.\033[0m\n", data->key);
-            send(*client, result, strlen(result), 0);
-            return EXIT_SUCCESS;
-        }
-
-        case dc_command: {
-            printf("Client %d requested disconnect\n", *client);
-            return CLIENT_DISCONNECT;
-        }
-
-        case quit_command: {
-            printf("Client %d requested shutdown\n", *client);
-            return SERVER_SHUTDOWN;
-        }
-
-        default: {
-            char result[BUFFER_SIZE];
-            sprintf(result, "\033[31mInvalid command.\033[0m\n");
-            send(*client, result, strlen(result), 0);
-            return EXEC_FAILURE;
-        }
+            // ... existing cases ...
     }
 }
