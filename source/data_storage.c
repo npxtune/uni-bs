@@ -144,8 +144,8 @@ void pub(const char *key, const int commandIndex, const int client) {
             }
 
             for (int j = 0; j < subscriptions[i].num_clients; ++j) {
-                int client = subscriptions[i].clients[j];
-                send(client, message, strlen(message), 0);
+                const int subClient = subscriptions[i].clients[j];
+                send(subClient, message, strlen(message), 0);
             }
             break;
         }
