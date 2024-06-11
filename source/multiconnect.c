@@ -19,6 +19,7 @@ char Buffer[BUFFER_SIZE] = {0};
 int ClientSockets[MAX_CLIENTS];
 int NumClients = 0;
 
+
 void multiconnect(const int *server, struct sockaddr_in *address) {
     while (!ShutdownRequested) {
         // Prepare file descriptors for select

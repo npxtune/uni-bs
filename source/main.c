@@ -10,6 +10,7 @@ bool IsClientConnected = false;
 int Server;
 struct sockaddr_in Address;
 
+
 int main() {
     if (init(&Server, &Address) == EXIT_SUCCESS) {
         // Initialize Socket
