@@ -6,9 +6,6 @@
 #include <string.h>
 #include <sys/socket.h>
 
-// Enum for command strings
-enum command_strings { get_command, put_command, del_command, dc_command, quit_command, beg_command, end_command, sub_command };
-
 const lookup_t COMMANDS[] = {
         {"GET"},
         {"PUT"},
@@ -45,7 +42,7 @@ int exec(const int commandIndex, const client_data *data, const int *client) {
                     snprintf(result, sizeof(result) - 2, "\033[31mkey%d:\tKey not found!\033[0m\n", temp);
                 } else {
                     send(*client, result, strlen(result), 0);
-                    pub(data->key, 'g');
+                    pub(data->key, commandIndex, *client);
                 }
             } else {
                 char result[BUFFER_SIZE];
@@ -61,7 +58,7 @@ int exec(const int commandIndex, const client_data *data, const int *client) {
                 if (put(data->key, data->value) == EXIT_SUCCESS) {
                     snprintf(result, sizeof(result), "%s -> %s", data->key, data->value);
                     send(*client, result, strlen(result), 0);
-                    pub(data->key, 'p');
+                    pub(data->key, commandIndex, *client);
                 } else {
                     snprintf(result, sizeof(result), "\033[31mNo value provided!\033[0m\n");
                     send(*client, result, strlen(result), 0);
@@ -81,7 +78,7 @@ int exec(const int commandIndex, const client_data *data, const int *client) {
                 if (ret == 0) {
                     snprintf(result, sizeof(result), "%s's value deleted.\n", data->key);
                     send(*client, result, strlen(result), 0);
-                    pub(data->key, 'd'); //key wird übermittelt und status d für delete wird übermittelt
+                    pub(data->key, commandIndex, *client); //key wird übermittelt und status d für delete wird übermittelt
                 } else {
                     snprintf(result, sizeof(result), "\033[31m%s has no value for deletion.\033[0m\n", data->key);
                     send(*client, result, strlen(result), 0);

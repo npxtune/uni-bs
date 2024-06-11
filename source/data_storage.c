@@ -121,22 +121,22 @@ int sub(const char *key, int client) {
     return -1; // Failure, max subscriptions reached
 }
 
-void pub(const char *key, char u) {
+void pub(const char *key, const int commandIndex, const int client) {
     pthread_mutex_lock(&mutex); // Lock mutex before accessing shared resources
 
     for (int i = 0; i < num_subscriptions; ++i) {
         int temp = strncmp(subscriptions[i].key, key, strlen(key));
         if (temp == 0) {
             char message[BUFFER_SIZE];
-            switch (u) {
-                case 'g':
-                    snprintf(message, sizeof(message), "Key %s was retrieved\n", key);
+            switch (commandIndex) {
+                case get_command:
+                    snprintf(message, sizeof(message), "Key %s was retrieved by Client %d\n", key, client);
                     break;
-                case 'p':
-                    snprintf(message, sizeof(message), "Key %s was updated\n", key);
+                case put_command:
+                    snprintf(message, sizeof(message), "Key %s was updated by Client %d\n", key, client);
                     break;
-                case 'd':
-                    snprintf(message, sizeof(message), "Key %s was deleted\n", key);
+                case del_command:
+                    snprintf(message, sizeof(message), "Key %s was deleted by Client %d\n", key, client);
                     break;
                 default:
                     pthread_mutex_unlock(&mutex); // Unlock mutex before returning

@@ -2,7 +2,7 @@
 #define DATA_STORAGE_H
 
 #include <pthread.h>
-#include <definitions.h>
+#include "definitions.h"
 
 #define MAX_KEY_LENGTH 100
 #define MAX_VALUE_LENGTH 100
@@ -31,7 +31,7 @@ int put(char *key, char *value);
 int get(char *key, char *res);
 int del(char *key);
 int sub(const char *key, int client);
-void pub(const char *key, char u);
+void pub(const char *key, int commandIndex, int client);
 
 
 #endif /* DATA_STORAGE_H */
