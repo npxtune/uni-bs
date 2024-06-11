@@ -125,7 +125,8 @@ void pub(const char *key, char u) {
     pthread_mutex_lock(&mutex); // Lock mutex before accessing shared resources
 
     for (int i = 0; i < num_subscriptions; ++i) {
-        if (strcmp(subscriptions[i].key, key) == 0) {
+        int temp = strncmp(subscriptions[i].key, key, strlen(key));
+        if (temp == 0) {
             char message[BUFFER_SIZE];
             switch (u) {
                 case 'g':

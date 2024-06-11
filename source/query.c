@@ -6,6 +6,8 @@
 #include <string.h>
 #include <sys/socket.h>
 
+// Enum for command strings
+enum command_strings { get_command, put_command, del_command, dc_command, quit_command, beg_command, end_command, sub_command };
 
 const lookup_t COMMANDS[] = {
         {"GET"},
