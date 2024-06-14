@@ -5,12 +5,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <sys/socket.h>
 
 #define MAX_ENTRIES 1000
+#define MAX_SUBSCRIBERS 100
 
 KeyValuePair data[MAX_ENTRIES];
 int num_entries = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for thread safety
+
+
+Subscription subscriptions[MAX_ENTRIES];
+int num_subscriptions = 0;
 
 int put(char *key, char *value) {
     pthread_mutex_lock(&mutex); // Lock mutex before accessing shared resources
@@ -83,4 +89,67 @@ int del(char *key) {
     }
     pthread_mutex_unlock(&mutex); // Unlock mutex before returning
     return -1; // Failure, key not found
+}
+
+int sub(const char *key, int client) {
+    pthread_mutex_lock(&mutex); // Lock mutex before accessing shared resources
+
+    for (int i = 0; i < num_subscriptions; ++i) {
+        if (strcmp(subscriptions[i].key, key) == 0) {
+            if (subscriptions[i].num_clients < MAX_SUBSCRIBERS) {
+                subscriptions[i].clients[subscriptions[i].num_clients++] = client;
+                pthread_mutex_unlock(&mutex); // Unlock mutex before returning
+                printf("%d has been added to subscribers for %c", client, *key);
+                return 0;
+            } else {
+                pthread_mutex_unlock(&mutex); // Unlock mutex before returning
+                return -1; // Failure, max subscribers reached
+            }
+        }
+    }
+
+    if (num_subscriptions < MAX_ENTRIES) {
+        strcpy(subscriptions[num_subscriptions].key, key);
+        subscriptions[num_subscriptions].clients[0] = client;
+        subscriptions[num_subscriptions].num_clients = 1;
+        num_subscriptions++;
+        pthread_mutex_unlock(&mutex); // Unlock mutex before returning
+        return 0; // Success, new subscription created
+    }
+
+    pthread_mutex_unlock(&mutex); // Unlock mutex before returning
+    return -1; // Failure, max subscriptions reached
+}
+
+void pub(const char *key, const int commandIndex, const int client) {
+    pthread_mutex_lock(&mutex); // Lock mutex before accessing shared resources
+
+    for (int i = 0; i < num_subscriptions; ++i) {
+        int temp = strncmp(subscriptions[i].key, key, strlen(key));
+        if (temp == 0) {
+            char message[BUFFER_SIZE];
+            switch (commandIndex) {
+                case get_command:
+                    snprintf(message, sizeof(message), "Key %s was retrieved by Client %d\n", key, client);
+                    break;
+                case put_command:
+                    snprintf(message, sizeof(message), "Key %s was updated by Client %d\n", key, client);
+                    break;
+                case del_command:
+                    snprintf(message, sizeof(message), "Key %s was deleted by Client %d\n", key, client);
+                    break;
+                default:
+                    pthread_mutex_unlock(&mutex); // Unlock mutex before returning
+                    return;
+            }
+
+            for (int j = 0; j < subscriptions[i].num_clients; ++j) {
+                const int subClient = subscriptions[i].clients[j];
+                send(subClient, message, strlen(message), 0);
+            }
+            break;
+        }
+    }
+
+    pthread_mutex_unlock(&mutex); // Unlock mutex before returning
 }

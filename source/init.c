@@ -1,5 +1,4 @@
 #include "init.h"
-#include "definitions.h"
 
 const int OPT = 1;
 
