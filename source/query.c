@@ -31,61 +31,58 @@ int query(const client_data *data, const int *client) {
 int exec(const int commandIndex, const client_data *data, const int *client) {
     switch (commandIndex) {
         case get_command: {
-            if(*client == begClient || begClient == -1) {
-                char result[BUFFER_SIZE];
-                const int ret = get(data->key, result);
-                int temp = 0;
-                for (int i = 0; i < sizeof(data->key); i++) {
-                    if (isdigit(data->key[i])) temp = data->key[i] - '0';
-                }
-                if (ret < 0) {
-                    snprintf(result, sizeof(result) - 2, "\033[31mkey%d:\tKey not found!\033[0m\n", temp);
-                } else {
-                    send(*client, result, strlen(result), 0);
-                    pub(data->key, commandIndex, *client);
-                }
-            } else {
+            if (*client != begClient || begClient != -1) {
                 char result[BUFFER_SIZE];
                 snprintf(result, sizeof(result), "beg started by other client");
                 send(*client, result, strlen(result), 0);
+            }
+            char result[BUFFER_SIZE];
+            const int ret = get(data->key, result);
+            int temp = 0;
+            for (int i = 0; i < sizeof(data->key); i++) {
+                if (isdigit(data->key[i])) temp = data->key[i] - '0';
+            }
+            if (ret < 0) {
+                snprintf(result, sizeof(result) - 2, "\033[31mkey%d:\tKey not found!\033[0m\n", temp);
+            } else {
+                send(*client, result, strlen(result), 0);
+                pub(data->key, commandIndex, *client);
             }
             return EXIT_SUCCESS;
         }
 
         case put_command: {
-            if(*client == begClient || begClient == -1) {
-                char result[BUFFER_SIZE];
-                if (put(data->key, data->value) == EXIT_SUCCESS) {
-                    snprintf(result, sizeof(result), "%s -> %s", data->key, data->value);
-                    send(*client, result, strlen(result), 0);
-                    pub(data->key, commandIndex, *client);
-                } else {
-                    snprintf(result, sizeof(result), "\033[31mNo value provided!\033[0m\n");
-                    send(*client, result, strlen(result), 0);
-                }
-            } else {
+            if (*client != begClient || begClient != -1) {
                 char result[BUFFER_SIZE];
                 snprintf(result, sizeof(result), "beg started by other client");
+                send(*client, result, strlen(result), 0);
+            }
+            char result[BUFFER_SIZE];
+            if (put(data->key, data->value) == EXIT_SUCCESS) {
+                snprintf(result, sizeof(result), "%s -> %s", data->key, data->value);
+                send(*client, result, strlen(result), 0);
+                pub(data->key, commandIndex, *client);
+            } else {
+                snprintf(result, sizeof(result), "\033[31mNo value provided!\033[0m\n");
                 send(*client, result, strlen(result), 0);
             }
             return EXIT_SUCCESS;
         }
 
         case del_command: {
-            if(*client == begClient || begClient == -1) {
-                char result[BUFFER_SIZE];
-                const int ret = del(data->key);
-                if (ret == 0) {
-                    snprintf(result, sizeof(result), "%s's value deleted.\n", data->key);
-                    send(*client, result, strlen(result), 0);
-                    pub(data->key, commandIndex, *client); //key wird übermittelt und status d für delete wird übermittelt
-                } else {
-                    snprintf(result, sizeof(result), "\033[31m%s has no value for deletion.\033[0m\n", data->key);
-                    send(*client, result, strlen(result), 0);
-                }
-            } else {
+            if (*client != begClient || begClient != -1) {
                 char result[BUFFER_SIZE];
                 snprintf(result, sizeof(result), "beg started by other client");
+                send(*client, result, strlen(result), 0);
+            }
+            char result[BUFFER_SIZE];
+            const int ret = del(data->key);
+            if (ret == 0) {
+                snprintf(result, sizeof(result), "%s's value deleted.\n", data->key);
+                send(*client, result, strlen(result), 0);
+                pub(data->key, commandIndex, *client); //key wird übermittelt und status d für delete wird übermittelt
+            } else {
+                snprintf(result, sizeof(result), "\033[31m%s has no value for deletion.\033[0m\n", data->key);
                 send(*client, result, strlen(result), 0);
             }
             return EXIT_SUCCESS;
